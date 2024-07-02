@@ -4,6 +4,7 @@ const mysql = require("mysql")
 const connection = require("./db.js")
 const cookieParser = require("cookie-parser")
 const sendToken = require("./sendToken.js")
+const authenticate = require("./authenticate.js")
 
 const PORT = 8000
 const API_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9"
@@ -114,6 +115,22 @@ app.get("/api/v1/car/get-rides",(req,res)=>{
 })
 
 //Rent car --customer
+app.post("/api/v1/car/rent",authenticate,(req,res)=>{
+    const {car_id,origin,rh} = req.body
+    const rentCar = `SELECT * FROM cars WHERE status=1 AND car_id='${car_id}' AND current_city='${origin}'`
+    connection.query(rentCar,(err,result)=>{
+        if(result.length==0){
+            res.status(400).json({
+                message:"No car is avialable at the moment"
+            })
+            return
+        }
+        for(let i=0;i<result.length;i++){
+            result[i].total_payable_amt = result[i].rent_per_hr*rh
+        }
+        res.status(200).json(result)
+    })
+})
 
 const createCarTable = `CREATE TABLE IF NOT EXISTS cars(car_id INT UNIQUE,category VARCHAR(10), 
                         model VARCHAR(20), number_plate VARCHAR(10) PRIMARY KEY NOT NULL, 
